@@ -18,9 +18,10 @@ RUN pnpm install --frozen-lockfile
 # Copy source files
 COPY packages/ ./packages/
 COPY server/ ./server/
+COPY turbo.json ./
 
-# Build
-RUN pnpm run build
+# Build (skip tests during Docker build)
+RUN pnpm run build --filter=@farmcraft/types --filter=@farmcraft/protocol --filter=@farmcraft/pow-core --filter=@farmcraft/server
 
 # Production image
 FROM node:20-alpine AS runner
