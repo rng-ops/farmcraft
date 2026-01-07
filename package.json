@@ -26,8 +26,11 @@
     "test:mod": "cd mod/forge && ./gradlew test",
     "test:mod:ci": "cd mod/forge && ./gradlew ciTest",
     "test:mod:validate": "cd mod/forge && ./gradlew validateCommands",
+    "test:mod:gameplay": "cd mod/forge && ./gradlew runGameTestServer",
     "test:e2e": "cd tools/e2e-client && npx ts-node src/e2e-test.ts",
+    "test:bot": "cd tools/e2e-bot && npm run test",
     "test:all": "./run-all-tests.sh",
+    "test:e2e:full": "./run-e2e-tests.sh",
     "lint": "turbo run lint",
     "clean": "turbo run clean",
     "typecheck": "turbo run typecheck"
