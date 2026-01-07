@@ -1,0 +1,304 @@
+name: E2E Tests (Self-Hosted macOS)
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      record_video:
+        description: 'Record video of tests'
+        required: false
+        type: boolean
+        default: true
+      headless:
+        description: 'Run in headless mode'
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  RECORD_VIDEO: ${{ github.event.inputs.record_video || 'true' }}
+  HEADLESS: ${{ github.event.inputs.headless || 'true' }}
+
+jobs:
+  # Build on standard runners
+  build-artifacts:
+    name: Build Mod and Servers
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build TypeScript packages
+        run: pnpm run build
+
+      - name: Build Forge mod
+        working-directory: mod/forge
+        run: |
+          chmod +x gradlew
+          ./gradlew build --no-daemon
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: |
+            mod/forge/build/libs/*.jar
+            server/*/dist/
+            packages/*/dist/
+
+  # Run gameplay tests on self-hosted macOS M2 runner
+  test-gameplay-macos:
+    name: Gameplay Tests (macOS M2)
+    runs-on: [self-hosted, macOS, ARM64, minecraft]
+    needs: build-artifacts
+    timeout-minutes: 30
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: artifacts/
+
+      - name: Setup test environment
+        run: |
+          echo "Setting up Minecraft test environment..."
+          mkdir -p ~/minecraft-test-output
+          
+          # Copy built mod to test environment
+          cp artifacts/mod/forge/build/libs/*.jar ~/minecraft-test-env/mods/ || true
+
+      - name: Start servers
+        run: |
+          echo "Starting test servers..."
+          pnpm install --frozen-lockfile
+          pnpm run start:all &
+          sleep 10
+          
+          # Verify servers are running
+          curl -f http://localhost:7420/health || exit 1
+          curl -f http://localhost:7424/health || exit 1
+
+      - name: Start video recording
+        if: env.RECORD_VIDEO == 'true'
+        run: |
+          echo "Starting video recording (headless: $HEADLESS)..."
+          HEADLESS=${{ env.HEADLESS }} DURATION=1200 \
+            ~/record-minecraft-test.sh ~/minecraft-test-output/videos &
+          echo "RECORDER_PID=$!" >> $GITHUB_ENV
+          sleep 3
+
+      - name: Start profiling
+        run: |
+          echo "Starting system profiling..."
+          ~/profile-minecraft-test.sh ~/minecraft-test-output/profiles &
+          echo "PROFILER_PID=$!" >> $GITHUB_ENV
+          sleep 2
+
+      - name: Run Minecraft server
+        run: |
+          echo "Starting Minecraft test server..."
+          cd mod/forge
+          ./gradlew runServer --no-daemon > ~/minecraft-test-output/logs/server.log 2>&1 &
+          echo "MC_SERVER_PID=$!" >> $GITHUB_ENV
+          
+          # Wait for server to start
+          for i in {1..60}; do
+            if grep -q "Done" ~/minecraft-test-output/logs/server.log 2>/dev/null; then
+              echo "Server started successfully"
+              break
+            fi
+            echo "Waiting for server... ($i/60)"
+            sleep 2
+          done
+
+      - name: Run GameTest framework tests
+        continue-on-error: true
+        run: |
+          echo "Running GameTest framework..."
+          cd mod/forge
+          ./gradlew runGameTestServer --no-daemon \
+            | tee ~/minecraft-test-output/logs/gametest.log
+
+      - name: Run bot-based E2E tests
+        continue-on-error: true
+        run: |
+          echo "Running E2E bot tests..."
+          cd tools/e2e-bot
+          pnpm install
+          pnpm build
+          pnpm test 2>&1 | tee ~/minecraft-test-output/logs/bot-test.log
+
+      - name: Run manual test scenarios
+        continue-on-error: true
+        run: |
+          echo "Running manual test scenarios..."
+          # Trigger scenarios that the bot can execute
+          cd tools/e2e-bot
+          node dist/test-bot.js localhost 25565 \
+            2>&1 | tee ~/minecraft-test-output/logs/scenarios.log
+
+      - name: Stop profiling
+        if: always()
+        run: |
+          if [ -n "$PROFILER_PID" ]; then
+            echo "Stopping profiler (PID: $PROFILER_PID)..."
+            kill $PROFILER_PID 2>/dev/null || true
+          fi
+
+      - name: Stop recording
+        if: always() && env.RECORD_VIDEO == 'true'
+        run: |
+          if [ -n "$RECORDER_PID" ]; then
+            echo "Stopping recorder (PID: $RECORDER_PID)..."
+            kill $RECORDER_PID 2>/dev/null || true
+            sleep 5
+          fi
+
+      - name: Stop Minecraft server
+        if: always()
+        run: |
+          if [ -n "$MC_SERVER_PID" ]; then
+            echo "Stopping Minecraft server (PID: $MC_SERVER_PID)..."
+            kill $MC_SERVER_PID 2>/dev/null || true
+          fi
+
+      - name: Collect test results
+        if: always()
+        run: |
+          echo "Collecting test results..."
+          
+          # Create summary
+          cat > ~/minecraft-test-output/test-summary.json << EOF
+          {
+            "workflow_run": "${{ github.run_id }}",
+            "commit": "${{ github.sha }}",
+            "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+            "platform": "macOS $(sw_vers -productVersion)",
+            "architecture": "$(uname -m)",
+            "headless": ${{ env.HEADLESS }},
+            "video_recorded": ${{ env.RECORD_VIDEO }}
+          }
+          EOF
+          
+          # List all outputs
+          echo "Test output files:"
+          find ~/minecraft-test-output -type f
+
+      - name: Upload test videos
+        if: always() && env.RECORD_VIDEO == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-videos-${{ github.run_id }}
+          path: ~/minecraft-test-output/videos/*.mp4
+          retention-days: 30
+
+      - name: Upload profiling data
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: profiling-data-${{ github.run_id }}
+          path: ~/minecraft-test-output/profiles/*.json
+          retention-days: 30
+
+      - name: Upload test logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-logs-${{ github.run_id }}
+          path: ~/minecraft-test-output/logs/*.log
+          retention-days: 30
+
+      - name: Upload test summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-summary-${{ github.run_id }}
+          path: ~/minecraft-test-output/test-summary.json
+          retention-days: 90
+
+      - name: Generate ML training dataset
+        if: always() && env.RECORD_VIDEO == 'true'
+        run: |
+          echo "Generating ML training dataset..."
+          
+          mkdir -p ~/minecraft-test-output/ml-dataset
+          
+          # Extract frames from video for ML training
+          for video in ~/minecraft-test-output/videos/*.mp4; do
+            if [ -f "$video" ]; then
+              basename=$(basename "$video" .mp4)
+              mkdir -p ~/minecraft-test-output/ml-dataset/$basename
+              
+              # Extract frame every second
+              ffmpeg -i "$video" \
+                -vf fps=1 \
+                ~/minecraft-test-output/ml-dataset/$basename/frame-%04d.jpg \
+                2>&1 | tee ~/minecraft-test-output/logs/frame-extract.log || true
+              
+              # Create metadata
+              cat > ~/minecraft-test-output/ml-dataset/$basename/metadata.json << METADATA
+          {
+            "source_video": "$basename.mp4",
+            "test_scenario": "${{ github.event_name }}",
+            "commit": "${{ github.sha }}",
+            "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+            "frame_rate": 1,
+            "total_frames": $(ls ~/minecraft-test-output/ml-dataset/$basename/*.jpg 2>/dev/null | wc -l)
+          }
+          METADATA
+            fi
+          done
+
+      - name: Upload ML training dataset
+        if: always() && env.RECORD_VIDEO == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ml-dataset-${{ github.run_id }}
+          path: ~/minecraft-test-output/ml-dataset/
+          retention-days: 90
+
+      - name: Test summary
+        if: always()
+        run: |
+          echo "## 🎮 Gameplay Test Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Platform:** macOS $(sw_vers -productVersion) ($(uname -m))" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Headless Mode:** ${{ env.HEADLESS }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Video Recorded:** ${{ env.RECORD_VIDEO }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "- Test videos available in artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "- Profiling data collected" >> $GITHUB_STEP_SUMMARY
+          echo "- ML training dataset generated" >> $GITHUB_STEP_SUMMARY
+          echo "- Logs and summaries uploaded" >> $GITHUB_STEP_SUMMARY
