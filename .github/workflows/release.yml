@@ -124,7 +124,7 @@ jobs:
           cp -r server/recipe-server/dist dist-package/server/recipe-server || true
           cp -r packages/mcp-recipe-server/dist dist-package/server/mcp-server || true
           cp -r packages/llm-docs/dist dist-package/server/llm-docs || true
-          
+
           # Include package.json files for dependencies
           cp server/recipe-server/package.json dist-package/server/recipe-server/ || true
           cp packages/mcp-recipe-server/package.json dist-package/server/mcp-server/ || true
@@ -181,7 +181,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Full history for changelog
+          fetch-depth: 0 # Full history for changelog
 
       - name: Download mod artifact
         uses: actions/download-artifact@v4
@@ -199,13 +199,13 @@ jobs:
         run: |
           VERSION="${{ needs.prepare.outputs.version }}"
           mkdir -p release
-          
+
           # Copy mod JAR
           cp artifacts/mod/*.jar release/
-          
+
           # Create mod-only zip
           cd artifacts/mod && zip -r "../../release/farmcraft-mod-${VERSION}.zip" *.jar && cd ../..
-          
+
           # Create full package
           mkdir -p full-package
           cp -r artifacts/mod full-package/
@@ -216,9 +216,9 @@ jobs:
           cp README.md full-package/
           cp QUICKSTART.md full-package/ || true
           cp -r docs full-package/ || true
-          
+
           cd full-package && zip -r "../release/farmcraft-full-${VERSION}.zip" . && cd ..
-          
+
           echo "📦 Release files prepared:"
           ls -la release/
 
@@ -226,32 +226,32 @@ jobs:
         id: changelog
         run: |
           VERSION="${{ needs.prepare.outputs.version }}"
-          
+
           # Get previous tag
           PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
-          
+
           cat > CHANGELOG.md << 'EOF'
           ## 🎮 FarmCraft ${{ needs.prepare.outputs.version }}
-          
+
           ### Downloads
           - **Mod Only**: `farmcraft-mod-${{ needs.prepare.outputs.version }}.zip` - Just the Forge mod JAR
           - **Full Package**: `farmcraft-full-${{ needs.prepare.outputs.version }}.zip` - Mod + servers + docs
           - **Docker**: `ghcr.io/${{ github.repository }}:${{ needs.prepare.outputs.version }}`
-          
+
           ### Installation
           1. Download `farmcraft-mod-${{ needs.prepare.outputs.version }}.zip`
           2. Extract the JAR to your Minecraft `mods/` folder
           3. Launch Minecraft with Forge 1.20.4
-          
+
           ### Changes
           EOF
-          
+
           if [ -n "$PREV_TAG" ]; then
             git log --pretty=format:"- %s" ${PREV_TAG}..HEAD >> CHANGELOG.md
           else
             echo "- Initial release" >> CHANGELOG.md
           fi
-          
+
           cat CHANGELOG.md
 
       - name: Create GitHub Release

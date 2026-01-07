@@ -8,7 +8,6 @@ This directory contains integration tests for the FarmCraft mod, specifically fo
   - Tests command execution
   - Validates command output
   - Checks error handling
-  
 - **CommandRegistrationTest.java** - Tests command registration
   - Ensures all commands are registered
   - Validates command structure
@@ -55,6 +54,7 @@ The tests are automatically run as part of the CI/CD pipeline:
 ## What Gets Tested
 
 ### Commands Tested
+
 1. `/farmcraft` - Main command (defaults to guide)
 2. `/farmcraft guide` - Shows in-game guide
 3. `/farmcraft status` - Displays server connection status
@@ -63,6 +63,7 @@ The tests are automatically run as part of the CI/CD pipeline:
 6. `/farmcraft topics` - Lists all available topics
 
 ### Test Coverage
+
 - ✅ Command registration validation
 - ✅ Command execution success
 - ✅ Argument parsing (string, greedy string)
@@ -82,6 +83,7 @@ Tests are integrated into the build process:
 ### GitHub Actions Workflow
 
 The `.github/workflows/mod-ci.yml` workflow:
+
 - Runs on push to main/develop branches
 - Runs on pull requests
 - Executes all tests
@@ -128,6 +130,7 @@ public void testNewCommand() throws CommandSyntaxException {
 ### CI/CD Failures
 
 Check:
+
 1. Test logs in GitHub Actions
 2. JUnit XML reports in artifacts
 3. Build output for dependency issues
@@ -135,6 +138,7 @@ Check:
 ### Command Not Found
 
 If a command test fails with "command not found":
+
 1. Check `FarmCraftCommand.register()` method
 2. Verify command is added to dispatcher
 3. Run `validateCommands` task

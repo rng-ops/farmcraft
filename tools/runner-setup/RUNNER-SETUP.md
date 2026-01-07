@@ -154,12 +154,14 @@ kill $PROFILER_PID
 ### Headless Mode
 
 Headless mode records tests without showing windows on screen. This is ideal for:
+
 - CI/CD pipelines
 - Background processing
 - Server environments
 - Unattended operation
 
 **Enable headless mode:**
+
 ```bash
 HEADLESS=true ~/record-minecraft-test.sh
 ```
@@ -167,12 +169,14 @@ HEADLESS=true ~/record-minecraft-test.sh
 ### Visible Mode
 
 Visible mode shows the Minecraft window and records it. Useful for:
+
 - Debugging tests
 - Visual verification
 - Demo creation
 - Interactive testing
 
 **Enable visible mode:**
+
 ```bash
 HEADLESS=false ~/record-minecraft-test.sh
 ```
@@ -196,6 +200,7 @@ The profiling system collects:
 - **Disk I/O:** Read/Write MB/s
 
 Data format (JSON):
+
 ```json
 {
   "timestamp": "2026-01-07T12:00:00.000Z",
@@ -237,6 +242,7 @@ ml-dataset/
 ### Metadata
 
 Each dataset includes metadata:
+
 ```json
 {
   "source_video": "test-20260107-120000.mp4",
@@ -253,6 +259,7 @@ Each dataset includes metadata:
 ### Local Storage
 
 Test outputs are stored locally at:
+
 - **Videos:** `~/minecraft-test-output/videos/`
 - **Profiles:** `~/minecraft-test-output/profiles/`
 - **Logs:** `~/minecraft-test-output/logs/`
@@ -261,6 +268,7 @@ Test outputs are stored locally at:
 ### GitHub Artifacts
 
 Artifacts are automatically uploaded to GitHub Actions:
+
 - **Retention:** 30 days (videos/profiles) | 90 days (dataset/summary)
 - **Access:** Via GitHub UI or API
 - **Download:** `gh run download RUN_ID`
@@ -270,16 +278,19 @@ Artifacts are automatically uploaded to GitHub Actions:
 For long-term storage, integrate with:
 
 **AWS S3:**
+
 ```bash
 aws s3 sync ~/minecraft-test-output/ s3://farmcraft-test-archive/
 ```
 
 **Google Cloud Storage:**
+
 ```bash
 gsutil -m rsync -r ~/minecraft-test-output/ gs://farmcraft-test-archive/
 ```
 
 **Azure Blob Storage:**
+
 ```bash
 az storage blob upload-batch \
     -s ~/minecraft-test-output/ \
@@ -454,6 +465,7 @@ ffmpeg ... -preset slow ...
 ### Selective Recording
 
 Only record specific tests:
+
 ```yaml
 - name: Record only gameplay tests
   if: contains(github.event.head_commit.message, '[record]')
@@ -463,6 +475,7 @@ Only record specific tests:
 ### Cleanup Old Artifacts
 
 Use GitHub API to delete old artifacts:
+
 ```bash
 gh api repos/{owner}/{repo}/actions/artifacts \
     --paginate | jq -r '.artifacts[] | select(.expired == false) | .id' | \
@@ -472,6 +485,7 @@ gh api repos/{owner}/{repo}/actions/artifacts \
 ## Support
 
 For issues or questions:
+
 - Check logs: `~/actions-runner/_diag/`
 - GitHub Discussions: Repository discussions
 - Issues: Create GitHub issue with `runner` label

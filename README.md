@@ -5,6 +5,7 @@ A comprehensive Minecraft mod for enhanced farming mechanics with proof-of-work 
 ## Overview
 
 This mod introduces:
+
 - **Enhanced Fertilizers**: Craft fertilizers from Tuff, Diorite, Calcite, Gravel, and other materials
 - **Power Foods**: Crops grown with special fertilizers grant unique effects
 - **Proof-of-Work Recipes**: Discover new recipes by contributing to distributed computation
@@ -50,16 +51,17 @@ pnpm dev:server
 
 ### Fertilizers
 
-| Fertilizer | Base Material | Effect on Crops |
-|------------|---------------|-----------------|
-| Stone Dust | Diorite | +Growth Speed |
-| Calcium Mix | Calcite | +Yield |
-| Mineral Blend | Tuff | +Effect Duration |
-| Gravel Grit | Gravel | +Effect Potency |
+| Fertilizer    | Base Material | Effect on Crops  |
+| ------------- | ------------- | ---------------- |
+| Stone Dust    | Diorite       | +Growth Speed    |
+| Calcium Mix   | Calcite       | +Yield           |
+| Mineral Blend | Tuff          | +Effect Duration |
+| Gravel Grit   | Gravel        | +Effect Potency  |
 
 ### Power Foods
 
 Crops grown with enhanced fertilizers gain special properties:
+
 - **Speed Carrots**: Grant Speed effect
 - **Strength Potatoes**: Grant Strength effect
 - **Resistance Beets**: Grant Resistance effect
@@ -112,6 +114,7 @@ See [docs/TESTING.md](docs/TESTING.md) for complete testing documentation.
 ### Available Commands
 
 The mod exposes the following in-game commands:
+
 - `/farmcraft` or `/farmcraft guide` - Show in-game guide
 - `/farmcraft status` - Check server connection status
 - `/farmcraft help <topic>` - Get help on specific topics
@@ -123,10 +126,12 @@ All commands are automatically tested in CI/CD to ensure they remain functional.
 ## CI/CD
 
 Tests run automatically on:
+
 - Push to `main` or `develop` branches
 - Pull requests
 
 The build will fail if:
+
 - Any command tests fail
 - Command registration is incomplete
 - Integration tests fail
