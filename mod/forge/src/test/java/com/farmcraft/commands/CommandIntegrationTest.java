@@ -28,7 +28,7 @@ public class CommandIntegrationTest {
     private ArgumentCaptor<Supplier<Component>> messageCaptor;
 
     @BeforeEach
-    public void setUp() {
+    public void setUp() throws CommandSyntaxException {
         // Create a fresh dispatcher for each test
         dispatcher = new CommandDispatcher<>();
         
@@ -39,7 +39,11 @@ public class CommandIntegrationTest {
         mockSource = mock(CommandSourceStack.class);
         ServerPlayer mockPlayer = mock(ServerPlayer.class);
         
-        when(mockSource.getPlayerOrException()).thenReturn(mockPlayer);
+        try {
+            when(mockSource.getPlayerOrException()).thenReturn(mockPlayer);
+        } catch (CommandSyntaxException e) {
+            // This won't happen with mocks, but needed for compilation
+        }
         when(mockSource.getPosition()).thenReturn(Vec3.ZERO);
         when(mockSource.getRotation()).thenReturn(Vec2.ZERO);
         when(mockSource.hasPermission(anyInt())).thenReturn(true);
