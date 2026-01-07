@@ -160,8 +160,7 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository }}
           tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=${{ needs.prepare.outputs.version }}
             type=raw,value=latest,enable=${{ needs.prepare.outputs.is_prerelease == 'false' }}
 
       - name: Build and push
