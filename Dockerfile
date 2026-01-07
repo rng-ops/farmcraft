@@ -1,4 +1,4 @@
-FROM node:20-alpine AS builder
+FROM node:25-alpine AS builder
 
 WORKDIR /app
 
@@ -24,7 +24,7 @@ COPY turbo.json ./
 RUN pnpm run build --filter=@farmcraft/types --filter=@farmcraft/protocol --filter=@farmcraft/pow-core --filter=@farmcraft/server
 
 # Production image
-FROM node:20-alpine AS runner
+FROM node:25-alpine AS runner
 
 WORKDIR /app
 
