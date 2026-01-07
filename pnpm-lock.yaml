@@ -90,8 +90,8 @@ importers:
         specifier: ^0.0.20
         version: 0.0.20(ws@8.19.0)
       '@langchain/core':
-        specifier: ^0.1.14
-        version: 0.1.63(openai@4.104.0)
+        specifier: ^1.1.11
+        version: 1.1.11
       cors:
         specifier: ^2.8.5
         version: 2.8.5
@@ -127,11 +127,11 @@ importers:
   packages/mcp-recipe-server:
     dependencies:
       '@langchain/core':
-        specifier: ^0.3.0
-        version: 0.3.80
+        specifier: ^1.1.11
+        version: 1.1.11
       '@langchain/openai':
         specifier: ^0.3.0
-        version: 0.3.17(@langchain/core@0.3.80)
+        version: 0.3.17(@langchain/core@1.1.11)
       '@modelcontextprotocol/sdk':
         specifier: ^1.0.0
         version: 1.25.1(hono@4.11.3)(zod@3.25.76)
@@ -140,7 +140,7 @@ importers:
         version: 4.22.1
       langchain:
         specifier: ^0.3.0
-        version: 0.3.37(@langchain/core@0.3.80)
+        version: 0.3.37(@langchain/core@1.1.11)
       level:
         specifier: ^8.0.0
         version: 8.0.1
@@ -1315,22 +1315,20 @@ packages:
       - openai
     dev: false
 
-  /@langchain/core@0.3.80:
-    resolution: {integrity: sha512-vcJDV2vk1AlCwSh3aBm/urQ1ZrlXFFBocv11bz/NBUfLWD5/UDNMzwPdaAd2dKvNmTWa9FM2lirLU3+JCf4cRA==}
-    engines: {node: '>=18'}
+  /@langchain/core@1.1.11:
+    resolution: {integrity: sha512-voW7j1eNdEhwBRSW947EDIwFoeRP3xabxi8YuUy6FOw3C52SthXpTr2TJrbmVJM1Q3UV7aTXB7a/q/X0Q26zoQ==}
+    engines: {node: '>=20'}
     dependencies:
       '@cfworker/json-schema': 4.1.1
       ansi-styles: 5.2.0
       camelcase: 6.3.0
       decamelize: 1.2.0
       js-tiktoken: 1.0.21
-      langsmith: 0.3.87
+      langsmith: 0.4.5
       mustache: 4.2.0
       p-queue: 6.6.2
-      p-retry: 4.6.2
       uuid: 10.0.0
       zod: 3.25.76
-      zod-to-json-schema: 3.25.1(zod@3.25.76)
     transitivePeerDependencies:
       - '@opentelemetry/api'
       - '@opentelemetry/exporter-trace-otlp-proto'
@@ -1352,13 +1350,13 @@ packages:
       - ws
     dev: false
 
-  /@langchain/openai@0.3.17(@langchain/core@0.3.80):
+  /@langchain/openai@0.3.17(@langchain/core@1.1.11):
     resolution: {integrity: sha512-uw4po32OKptVjq+CYHrumgbfh4NuD7LqyE+ZgqY9I/LrLc6bHLMc+sisHmI17vgek0K/yqtarI0alPJbzrwyag==}
     engines: {node: '>=18'}
     peerDependencies:
       '@langchain/core': '>=0.3.29 <0.4.0'
     dependencies:
-      '@langchain/core': 0.3.80
+      '@langchain/core': 1.1.11
       js-tiktoken: 1.0.21
       openai: 4.104.0(ws@8.19.0)(zod@3.25.76)
       zod: 3.25.76
@@ -1368,13 +1366,13 @@ packages:
       - ws
     dev: false
 
-  /@langchain/textsplitters@0.1.0(@langchain/core@0.3.80):
+  /@langchain/textsplitters@0.1.0(@langchain/core@1.1.11):
     resolution: {integrity: sha512-djI4uw9rlkAb5iMhtLED+xJebDdAG935AdP4eRTB02R7OB/act55Bj9wsskhZsvuyQRpO4O1wQOp85s6T6GWmw==}
     engines: {node: '>=18'}
     peerDependencies:
       '@langchain/core': '>=0.2.21 <0.4.0'
     dependencies:
-      '@langchain/core': 0.3.80
+      '@langchain/core': 1.1.11
       js-tiktoken: 1.0.21
     dev: false
 
@@ -3772,7 +3770,7 @@ packages:
     engines: {node: '>=6'}
     dev: true
 
-  /langchain@0.3.37(@langchain/core@0.3.80):
+  /langchain@0.3.37(@langchain/core@1.1.11):
     resolution: {integrity: sha512-1jPsZ6xsxkcQPUvqRjvfuOLwZLLyt49hzcOK7OYAJovIkkOxd5gzK4Yw6giPUQ8g4XHyvULNlWBz+subdkcokw==}
     engines: {node: '>=18'}
     peerDependencies:
@@ -3830,9 +3828,9 @@ packages:
       typeorm:
         optional: true
     dependencies:
-      '@langchain/core': 0.3.80
-      '@langchain/openai': 0.3.17(@langchain/core@0.3.80)
-      '@langchain/textsplitters': 0.1.0(@langchain/core@0.3.80)
+      '@langchain/core': 1.1.11
+      '@langchain/openai': 0.3.17(@langchain/core@1.1.11)
+      '@langchain/textsplitters': 0.1.0(@langchain/core@1.1.11)
       js-tiktoken: 1.0.21
       js-yaml: 4.1.1
       jsonpointer: 5.0.1
@@ -3881,6 +3879,31 @@ packages:
 
   /langsmith@0.3.87:
     resolution: {integrity: sha512-XXR1+9INH8YX96FKWc5tie0QixWz6tOqAsAKfcJyPkE0xPep+NDz0IQLR32q4bn10QK3LqD2HN6T3n6z1YLW7Q==}
+    peerDependencies:
+      '@opentelemetry/api': '*'
+      '@opentelemetry/exporter-trace-otlp-proto': '*'
+      '@opentelemetry/sdk-trace-base': '*'
+      openai: '*'
+    peerDependenciesMeta:
+      '@opentelemetry/api':
+        optional: true
+      '@opentelemetry/exporter-trace-otlp-proto':
+        optional: true
+      '@opentelemetry/sdk-trace-base':
+        optional: true
+      openai:
+        optional: true
+    dependencies:
+      '@types/uuid': 10.0.0
+      chalk: 4.1.2
+      console-table-printer: 2.15.0
+      p-queue: 6.6.2
+      semver: 7.7.3
+      uuid: 10.0.0
+    dev: false
+
+  /langsmith@0.4.5:
+    resolution: {integrity: sha512-9N4JSQLz6fWiZwVXaiy0erlvNHlC68EtGJZG2OX+1y9mqj7KvKSL+xJnbCFc+ky3JN8s1d6sCfyyDdi4uDdLnQ==}
     peerDependencies:
       '@opentelemetry/api': '*'
       '@opentelemetry/exporter-trace-otlp-proto': '*'

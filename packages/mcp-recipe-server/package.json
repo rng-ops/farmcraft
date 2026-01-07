@@ -13,7 +13,7 @@
     "@modelcontextprotocol/sdk": "^1.0.0",
     "langchain": "^0.3.0",
     "@langchain/openai": "^0.3.0",
-    "@langchain/core": "^0.3.0",
+    "@langchain/core": "^1.1.11",
     "zod": "^3.22.0",
     "uuid": "^9.0.0",
     "level": "^8.0.0",
