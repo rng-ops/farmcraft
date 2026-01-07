@@ -155,7 +155,7 @@ jobs:
           echo "Running E2E bot tests..."
           cd tools/e2e-bot
           pnpm build
-          pnpm test 2>&1 | tee ~/minecraft-test-output/logs/bot-test.log
+          pnpm test:connect 2>&1 | tee ~/minecraft-test-output/logs/bot-test.log
 
       - name: Run manual test scenarios
         continue-on-error: true
@@ -163,8 +163,7 @@ jobs:
           echo "Running manual test scenarios..."
           # Trigger scenarios that the bot can execute
           cd tools/e2e-bot
-          node dist/test-bot.js localhost 25565 \
-            2>&1 | tee ~/minecraft-test-output/logs/scenarios.log
+          pnpm test:local 2>&1 | tee ~/minecraft-test-output/logs/scenarios.log
 
       - name: Stop profiling
         if: always()

@@ -5,7 +5,8 @@
   "main": "dist/test-bot.js",
   "scripts": {
     "build": "tsc",
-    "test": "node dist/test-bot.js",
+    "test": "echo 'E2E bot tests require a running Minecraft server. Use test:connect to run against a server.' && exit 0",
+    "test:connect": "node dist/test-bot.js",
     "test:local": "node dist/test-bot.js localhost 25565",
     "dev": "ts-node src/test-bot.ts"
   },
