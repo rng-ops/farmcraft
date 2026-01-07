@@ -1,0 +1,66 @@
+{
+  "itemGroup.farmcraft": "FarmCraft",
+
+  "item.farmcraft.stone_dust_fertilizer": "Stone Dust Fertilizer",
+  "item.farmcraft.calcium_mix_fertilizer": "Calcium Mix Fertilizer",
+  "item.farmcraft.mineral_blend_fertilizer": "Mineral Blend Fertilizer",
+  "item.farmcraft.gravel_grit_fertilizer": "Gravel Grit Fertilizer",
+  "item.farmcraft.enhanced_stone_fertilizer": "Enhanced Stone Fertilizer",
+  "item.farmcraft.enhanced_mineral_fertilizer": "Enhanced Mineral Fertilizer",
+  "item.farmcraft.superior_blend_fertilizer": "Superior Blend Fertilizer",
+
+  "item.farmcraft.speed_carrot": "Speed Carrot",
+  "item.farmcraft.strength_potato": "Strength Potato",
+  "item.farmcraft.resistance_beet": "Resistance Beetroot",
+  "item.farmcraft.night_vision_bread": "Night Vision Bread",
+  "item.farmcraft.super_speed_carrot": "Super Speed Carrot",
+  "item.farmcraft.regeneration_apple": "Regeneration Apple",
+
+  "item.farmcraft.fertilizer_spreader": "Fertilizer Spreader",
+  "item.farmcraft.crop_analyzer": "Crop Analyzer",
+  "item.farmcraft.spreader_range_upgrade": "Spreader Range Upgrade",
+  "item.farmcraft.analyzer_precision_upgrade": "Analyzer Precision Upgrade",
+  "item.farmcraft.mutation_serum": "Mutation Serum",
+
+  "block.farmcraft.stone_fertilized_farmland": "Stone Fertilized Farmland",
+  "block.farmcraft.calcium_fertilized_farmland": "Calcium Fertilized Farmland",
+  "block.farmcraft.mineral_fertilized_farmland": "Mineral Fertilized Farmland",
+  "block.farmcraft.gravel_fertilized_farmland": "Gravel Fertilized Farmland",
+  "block.farmcraft.enhanced_stone_farmland": "Enhanced Stone Farmland",
+  "block.farmcraft.enhanced_mineral_farmland": "Enhanced Mineral Farmland",
+  "block.farmcraft.superior_blend_farmland": "Superior Blend Farmland",
+
+  "effect.farmcraft.fertile_aura": "Fertile Aura",
+  "effect.farmcraft.bountiful_harvest": "Bountiful Harvest",
+
+  "tooltip.farmcraft.fertilizer.tier": "Tier: %s",
+  "tooltip.farmcraft.fertilizer.effect": "Effect Multiplier: %s",
+  "tooltip.farmcraft.fertilizer.usage": "Right-click on farmland to apply",
+
+  "tooltip.farmcraft.power_food.effect": "Effect: %s %d",
+  "tooltip.farmcraft.power_food.duration": "Duration: %d seconds",
+  "tooltip.farmcraft.power_food.nutrition": "Nutrition: %d",
+
+  "tooltip.farmcraft.spreader.range": "Range: %dx%d",
+  "tooltip.farmcraft.spreader.usage": "Right-click to spread fertilizer",
+
+  "tooltip.farmcraft.analyzer.description": "Analyzes crops and farmland",
+  "tooltip.farmcraft.analyzer.usage": "Right-click on crops or farmland",
+
+  "message.farmcraft.no_fertilizer": "No fertilizer in inventory!",
+  "message.farmcraft.fertilizer_applied": "Applied fertilizer to %d blocks",
+
+  "message.farmcraft.analyzer.not_analyzable": "Cannot analyze this block",
+  "message.farmcraft.analyzer.crop_type": "Crop: %s",
+  "message.farmcraft.analyzer.growth": "Growth: %s (%d/%d)",
+  "message.farmcraft.analyzer.fertilizer": "Fertilizer: %s",
+  "message.farmcraft.analyzer.effect": "Bonus: %s",
+  "message.farmcraft.analyzer.time_remaining": "Est. time to harvest: ~%d min",
+  "message.farmcraft.analyzer.fertilizer_type": "Fertilizer Type: %s",
+  "message.farmcraft.analyzer.growth_bonus": "Growth Speed: %s",
+  "message.farmcraft.analyzer.yield_bonus": "Yield Bonus: %s",
+  "message.farmcraft.analyzer.effect_info": "Effect: %s",
+
+  "key.categories.farmcraft": "FarmCraft",
+  "key.farmcraft.open_docs": "Open Documentation"
+}

@@ -1,0 +1,48 @@
+{
+  "name": "minecraft-farmcraft-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Monorepo for FarmCraft mod - Enhanced farming with proof-of-work recipes and distributed protein folding",
+  "workspaces": [
+    "packages/*",
+    "mod/*",
+    "server/*",
+    "tools/*",
+    "demo"
+  ],
+  "scripts": {
+    "build": "turbo run build",
+    "build:mod": "cd mod/forge && ./gradlew build",
+    "build:server": "turbo run build --filter=@farmcraft/server",
+    "dev:server": "turbo run dev --filter=@farmcraft/server",
+    "demo:drm": "npx ts-node demo/drm-demo.ts",
+    "demo:core": "npx ts-node -e \"require('./packages/drm-core/src').demo()\"",
+    "demo:peer": "npx ts-node -e \"require('./packages/peer-verify/src').demo()\"",
+    "demo:recipe": "cd packages/mcp-recipe-server && npx ts-node src/demo.ts",
+    "demo:watermark": "cd packages/shader-watermark && npx ts-node src/demo.ts",
+    "server:mcp": "cd packages/mcp-recipe-server && npx ts-node src/index.ts",
+    "server:http": "cd packages/mcp-recipe-server && npx ts-node src/http-server.ts",
+    "test": "turbo run test",
+    "test:mod": "cd mod/forge && ./gradlew test",
+    "test:mod:ci": "cd mod/forge && ./gradlew ciTest",
+    "test:mod:validate": "cd mod/forge && ./gradlew validateCommands",
+    "test:e2e": "cd tools/e2e-client && npx ts-node src/e2e-test.ts",
+    "test:all": "./run-all-tests.sh",
+    "lint": "turbo run lint",
+    "clean": "turbo run clean",
+    "typecheck": "turbo run typecheck"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0",
+    "typescript": "^5.3.0",
+    "prettier": "^3.1.0",
+    "eslint": "^8.56.0",
+    "@types/node": "^20.10.0",
+    "ts-node": "^10.9.2"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@8.15.0"
+}

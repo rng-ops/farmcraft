@@ -1,0 +1,58 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+out/
+*.jar
+*.class
+
+# Gradle
+.gradle/
+mod/forge/build/
+mod/fabric/build/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Testing
+coverage/
+
+# Turbo
+.turbo/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Minecraft
+run/
+runs/
+*.lck
+
+# Proof of work cache
+pow-cache/
+folding-results/
+
+# Installer cache
+.installer/
+
+# Temp logs
+/tmp/farmcraft-*.log

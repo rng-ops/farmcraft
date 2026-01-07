@@ -1,0 +1,43 @@
+version: 2
+updates:
+  # GitHub Actions
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+    commit-message:
+      prefix: 'ci'
+
+  # npm/pnpm packages
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+    commit-message:
+      prefix: 'deps'
+    groups:
+      typescript:
+        patterns:
+          - 'typescript'
+          - '@types/*'
+      turbo:
+        patterns:
+          - 'turbo'
+      dev-dependencies:
+        dependency-type: 'development'
+
+  # Gradle for Forge mod
+  - package-ecosystem: 'gradle'
+    directory: '/mod/forge'
+    schedule:
+      interval: 'weekly'
+    commit-message:
+      prefix: 'deps(mod)'
+
+  # Docker
+  - package-ecosystem: 'docker'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+    commit-message:
+      prefix: 'deps(docker)'

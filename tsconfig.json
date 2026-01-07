@@ -1,0 +1,18 @@
+{
+  "extends": "./packages/types/tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@farmcraft/*": ["packages/*/src"]
+    }
+  },
+  "references": [
+    { "path": "./packages/types" },
+    { "path": "./packages/protocol" },
+    { "path": "./packages/pow-core" },
+    { "path": "./packages/folding-client" },
+    { "path": "./packages/shader-compute" },
+    { "path": "./server/recipe-server" },
+    { "path": "./tools/dev-utils" }
+  ]
+}

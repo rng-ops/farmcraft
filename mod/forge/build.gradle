@@ -1,0 +1,212 @@
+plugins {
+    id 'java'
+    id 'eclipse'
+    id 'idea'
+    id 'maven-publish'
+    id 'net.minecraftforge.gradle' version '[6.0.16,6.2)'
+}
+
+version = '1.0.0'
+group = 'com.farmcraft'
+
+base {
+    archivesName = 'farmcraft'
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+
+println "Java: ${System.getProperty 'java.version'}, JVM: ${System.getProperty 'java.vm.version'} (${System.getProperty 'java.vendor'}), Arch: ${System.getProperty 'os.arch'}"
+
+minecraft {
+    mappings channel: 'official', version: '1.20.4'
+
+    copyIdeResources = true
+
+    runs {
+        configureEach {
+            workingDirectory project.file('run')
+
+            property 'forge.logging.markers', 'REGISTRIES'
+            property 'forge.logging.console.level', 'debug'
+
+            mods {
+                farmcraft {
+                    source sourceSets.main
+                }
+            }
+        }
+
+        client {
+            property 'forge.enabledGameTestNamespaces', 'farmcraft'
+            
+            // Auto-connect to server if specified
+            if (project.hasProperty('mc.server')) {
+                args '--server', project.property('mc.server').split(':')[0]
+                args '--port', project.property('mc.server').split(':')[1]
+            }
+        }
+
+        server {
+            property 'forge.enabledGameTestNamespaces', 'farmcraft'
+            args '--nogui'
+            workingDirectory project.file('run-server')
+        }
+
+        gameTestServer {
+            property 'forge.enabledGameTestNamespaces', 'farmcraft'
+        }
+
+        data {
+            args '--mod', 'farmcraft', '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
+        }
+    }
+}
+
+sourceSets.main.resources { srcDir 'src/generated/resources' }
+
+repositories {
+    maven {
+        url "https://www.cursemaven.com"
+        content {
+            includeGroup "curse.maven"
+        }
+    }
+}
+
+dependencies {
+    minecraft 'net.minecraftforge:forge:1.20.4-49.0.30'
+    
+    // Test dependencies
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.3'
+    testImplementation 'org.junit.jupiter:junit-jupiter-params:5.9.3'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.9.3'
+    testImplementation 'org.mockito:mockito-core:5.3.1'
+    testImplementation 'org.mockito:mockito-junit-jupiter:5.3.1'
+}
+
+tasks.named('processResources', ProcessResources).configure {
+    var replaceProperties = [
+            minecraft_version   : '1.20.4',
+            minecraft_version_range: '[1.20.4,1.21)',
+            forge_version       : '49.0.30',
+            forge_version_range : '[49,)',
+            loader_version_range: '[49,)',
+            mod_id              : 'farmcraft',
+            mod_name            : 'FarmCraft',
+            mod_license         : 'MIT',
+            mod_version         : '1.0.0',
+            mod_authors         : 'FarmCraft Team',
+            mod_description     : 'Enhanced farming with fertilizers and power foods'
+    ]
+    inputs.properties replaceProperties
+
+    filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) {
+        expand replaceProperties + [project: project]
+    }
+}
+
+tasks.named('jar', Jar).configure {
+    manifest {
+        attributes([
+                'Specification-Title'     : 'farmcraft',
+                'Specification-Vendor'    : 'FarmCraft Team',
+                'Specification-Version'   : '1',
+                'Implementation-Title'    : project.name,
+                'Implementation-Version'  : project.jar.archiveVersion,
+                'Implementation-Vendor'   : 'FarmCraft Team',
+                'Implementation-Timestamp': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
+        ])
+    }
+
+    finalizedBy 'reobfJar'
+}
+
+publishing {
+    publications {
+        register('mavenJava', MavenPublication) {
+            artifact jar
+        }
+    }
+    repositories {
+        maven {
+            url "file://${project.projectDir}/mcmodsrepo"
+        }
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+// Configure test task
+test {
+    useJUnitPlatform()
+    
+    // Run tests during build
+    testLogging {
+        events "passed", "skipped", "failed"
+        exceptionFormat "full"
+        showStandardStreams = false
+    }
+    
+    // Fail build if command tests fail
+    failFast = false
+    ignoreFailures = false
+    
+    // Set test output
+    reports {
+        html.required = true
+        junitXml.required = true
+    }
+    
+    systemProperty 'junit.jupiter.execution.parallel.enabled', 'false'
+}
+
+// Ensure tests run before building the jar
+tasks.named('jar').configure {
+    dependsOn test
+}
+
+// CI/CD integration: create a task that runs tests and reports results
+task ciTest(type: Test) {
+    useJUnitPlatform()
+    
+    testLogging {
+        events "passed", "skipped", "failed", "standardOut", "standardError"
+        exceptionFormat "full"
+        showExceptions true
+        showCauses true
+        showStackTraces true
+    }
+    
+    // CI/CD should fail on any test failure
+    failFast = true
+    ignoreFailures = false
+    
+    // Output test results for CI/CD systems
+    reports {
+        html.required = true
+        junitXml.required = true
+    }
+    
+    // Set output directory for CI/CD
+    reports.html.outputLocation = file("$buildDir/reports/tests/ci")
+    reports.junitXml.outputLocation = file("$buildDir/test-results/ci")
+}
+
+// Create a task to validate commands are registered
+task validateCommands(type: Test) {
+    description = 'Validates that all FarmCraft commands are properly registered'
+    group = 'verification'
+    
+    useJUnitPlatform {
+        includeTags 'command-registration'
+    }
+    
+    testLogging {
+        events "passed", "failed"
+        exceptionFormat "full"
+    }
+    
+    failFast = true
+}

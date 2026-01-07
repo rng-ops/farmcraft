@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "DD",
+    "DD",
+    "BB"
+  ],
+  "key": {
+    "D": {
+      "item": "minecraft:diorite"
+    },
+    "B": {
+      "item": "minecraft:bone_meal"
+    }
+  },
+  "result": {
+    "item": "farmcraft:stone_dust_fertilizer",
+    "count": 4
+  }
+}

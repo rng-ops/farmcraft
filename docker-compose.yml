@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  recipe-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - '7420:7420'
+      - '7421:7421'
+    environment:
+      - NODE_ENV=production
+      - PORT=7420
+      - WS_PORT=7421
+      - TOKEN_SECRET=${TOKEN_SECRET:-farmcraft-secret-change-me}
+    healthcheck:
+      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:7420/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  # Optional: Redis for session/token storage
+  redis:
+    image: redis:7-alpine
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+
+  # Optional: Prometheus for metrics
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - '9090:9090'
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    restart: unless-stopped
+
+volumes:
+  redis-data:
+  prometheus-data:

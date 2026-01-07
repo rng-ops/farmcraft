@@ -1,0 +1,335 @@
+#!/bin/bash
+# FarmCraft Complete Installer
+# Downloads Minecraft, installs Forge, and sets up the mod with auto-connect
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+MINECRAFT_VERSION="1.20.4"
+FORGE_VERSION="49.0.30"
+FORGE_INSTALLER="forge-${MINECRAFT_VERSION}-${FORGE_VERSION}-installer.jar"
+FORGE_URL="https://maven.minecraftforge.net/net/minecraftforge/forge/${MINECRAFT_VERSION}-${FORGE_VERSION}/${FORGE_INSTALLER}"
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+print_header() {
+    echo -e "${BLUE}"
+    echo "╔════════════════════════════════════════════════════════════╗"
+    echo "║              FarmCraft Mod Installer                       ║"
+    echo "║          Minecraft $MINECRAFT_VERSION + Forge $FORGE_VERSION              ║"
+    echo "╚════════════════════════════════════════════════════════════╝"
+    echo -e "${NC}"
+}
+
+check_java() {
+    echo -e "${YELLOW}Checking Java installation...${NC}"
+    if command -v java &> /dev/null; then
+        JAVA_VER=$(java -version 2>&1 | head -n 1 | cut -d'"' -f2 | cut -d'.' -f1)
+        if [ "$JAVA_VER" -ge 17 ]; then
+            echo -e "${GREEN}✓ Java $JAVA_VER found${NC}"
+            return 0
+        fi
+    fi
+    
+    echo -e "${RED}Java 17+ required. Installing...${NC}"
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        brew install openjdk@17
+        export JAVA_HOME="/opt/homebrew/opt/openjdk@17"
+        export PATH="$JAVA_HOME/bin:$PATH"
+    elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        sudo apt-get update && sudo apt-get install -y openjdk-17-jdk
+    else
+        echo -e "${RED}Please install Java 17 manually${NC}"
+        exit 1
+    fi
+}
+
+check_node() {
+    echo -e "${YELLOW}Checking Node.js installation...${NC}"
+    if command -v node &> /dev/null; then
+        NODE_VER=$(node -v | cut -d'v' -f2 | cut -d'.' -f1)
+        if [ "$NODE_VER" -ge 20 ]; then
+            echo -e "${GREEN}✓ Node.js v$NODE_VER found${NC}"
+            return 0
+        fi
+    fi
+    
+    echo -e "${RED}Node.js 20+ required. Please install from https://nodejs.org${NC}"
+    exit 1
+}
+
+detect_minecraft_dir() {
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        MINECRAFT_DIR="$HOME/Library/Application Support/minecraft"
+    elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        MINECRAFT_DIR="$HOME/.minecraft"
+    elif [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "cygwin" ]]; then
+        MINECRAFT_DIR="$APPDATA/.minecraft"
+    else
+        MINECRAFT_DIR="$HOME/.minecraft"
+    fi
+    echo "$MINECRAFT_DIR"
+}
+
+install_forge() {
+    echo -e "${YELLOW}Installing Minecraft Forge...${NC}"
+    
+    MINECRAFT_DIR=$(detect_minecraft_dir)
+    INSTALLER_DIR="$SCRIPT_DIR/.installer"
+    mkdir -p "$INSTALLER_DIR"
+    
+    # Download Forge installer
+    if [ ! -f "$INSTALLER_DIR/$FORGE_INSTALLER" ]; then
+        echo "Downloading Forge installer..."
+        curl -L "$FORGE_URL" -o "$INSTALLER_DIR/$FORGE_INSTALLER"
+    fi
+    
+    # Check if Minecraft directory exists
+    if [ ! -d "$MINECRAFT_DIR" ]; then
+        echo -e "${YELLOW}Minecraft directory not found at: $MINECRAFT_DIR${NC}"
+        echo "Please run Minecraft Launcher at least once, then re-run this script."
+        echo ""
+        echo "Download Minecraft from: https://www.minecraft.net/download"
+        exit 1
+    fi
+    
+    # Check if this Forge version is already installed
+    FORGE_PROFILE="$MINECRAFT_DIR/versions/${MINECRAFT_VERSION}-forge-${FORGE_VERSION}"
+    if [ -d "$FORGE_PROFILE" ]; then
+        echo -e "${GREEN}✓ Forge ${FORGE_VERSION} already installed${NC}"
+    else
+        echo "Running Forge installer (this will open a GUI)..."
+        java -jar "$INSTALLER_DIR/$FORGE_INSTALLER"
+    fi
+}
+
+install_mod() {
+    echo -e "${YELLOW}Installing FarmCraft mod...${NC}"
+    
+    MINECRAFT_DIR=$(detect_minecraft_dir)
+    MODS_DIR="$MINECRAFT_DIR/mods"
+    mkdir -p "$MODS_DIR"
+    
+    # Build mod if not already built
+    MOD_JAR="$SCRIPT_DIR/mod/forge/build/libs/farmcraft-1.0.0.jar"
+    if [ ! -f "$MOD_JAR" ]; then
+        echo "Building mod..."
+        cd "$SCRIPT_DIR/mod/forge"
+        ./gradlew build --no-daemon
+        cd "$SCRIPT_DIR"
+    fi
+    
+    # Copy mod to mods folder
+    cp "$MOD_JAR" "$MODS_DIR/"
+    echo -e "${GREEN}✓ Mod installed to: $MODS_DIR/farmcraft-1.0.0.jar${NC}"
+}
+
+setup_config() {
+    echo -e "${YELLOW}Setting up mod configuration...${NC}"
+    
+    MINECRAFT_DIR=$(detect_minecraft_dir)
+    CONFIG_DIR="$MINECRAFT_DIR/config"
+    mkdir -p "$CONFIG_DIR"
+    
+    # Get server address (default to localhost)
+    SERVER_HOST="${FARMCRAFT_SERVER:-localhost}"
+    SERVER_PORT="${FARMCRAFT_PORT:-7421}"
+    
+    cat > "$CONFIG_DIR/farmcraft-common.toml" << EOF
+#FarmCraft Configuration
+#Auto-generated by installer
+
+[farmcraft]
+    [farmcraft.server]
+        recipeServerUrl = "$SERVER_HOST"
+        recipeServerPort = $SERVER_PORT
+        autoConnect = true
+
+    [farmcraft.pow]
+        enablePoW = true
+        maxDifficulty = 10
+        useGpuCompute = false
+        threadPriority = 1
+
+    [farmcraft.farming]
+        baseGrowthMultiplier = 1.0
+        baseYieldMultiplier = 1.0
+        enablePowerFoods = true
+        effectDurationModifier = 100
+
+    [farmcraft.fertilizers]
+        showParticles = true
+        farmlandGlow = true
+
+    [farmcraft.debug]
+        debugMode = false
+        logNetworkPackets = false
+EOF
+    
+    echo -e "${GREEN}✓ Config created with server: $SERVER_HOST:$SERVER_PORT${NC}"
+}
+
+build_servers() {
+    echo -e "${YELLOW}Building backend servers...${NC}"
+    
+    cd "$SCRIPT_DIR"
+    
+    # Install pnpm if needed
+    if ! command -v pnpm &> /dev/null; then
+        npm install -g pnpm
+    fi
+    
+    # Install dependencies and build
+    pnpm install
+    pnpm run build
+    
+    echo -e "${GREEN}✓ Servers built successfully${NC}"
+}
+
+create_launcher() {
+    echo -e "${YELLOW}Creating game launcher script...${NC}"
+    
+    MINECRAFT_DIR=$(detect_minecraft_dir)
+    
+    cat > "$SCRIPT_DIR/launch-farmcraft.sh" << 'EOF'
+#!/bin/bash
+# FarmCraft Game Launcher
+# Starts servers and launches Minecraft
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+echo "🌾 Starting FarmCraft..."
+
+# Start backend servers
+echo "Starting servers..."
+"$SCRIPT_DIR/start-servers.sh" &
+SERVERS_PID=$!
+
+# Wait for servers to be ready
+sleep 3
+
+# Check if servers are running
+if curl -s http://localhost:7420/health > /dev/null 2>&1; then then
+    echo "✓ Recipe Server ready"
+else
+    echo "⚠ Recipe Server not responding (will retry in-game)"
+fi
+
+echo ""
+echo "════════════════════════════════════════════════"
+echo "  Servers are running!"
+echo "  Now launch Minecraft with Forge $MINECRAFT_VERSION"
+echo ""
+echo "  Select the '1.20.4-forge' profile in the launcher"
+echo "════════════════════════════════════════════════"
+echo ""
+echo "Press Ctrl+C to stop servers when done playing"
+
+# Open Minecraft launcher (macOS)
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    open -a "Minecraft"
+fi
+
+# Wait for servers
+wait $SERVERS_PID
+EOF
+    
+    chmod +x "$SCRIPT_DIR/launch-farmcraft.sh"
+    echo -e "${GREEN}✓ Launcher script created: launch-farmcraft.sh${NC}"
+}
+
+print_summary() {
+    MINECRAFT_DIR=$(detect_minecraft_dir)
+    
+    echo ""
+    echo -e "${GREEN}╔════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${GREEN}║              Installation Complete! 🎉                     ║${NC}"
+    echo -e "${GREEN}╚════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    echo -e "${BLUE}Installed Components:${NC}"
+    echo "  • Forge ${FORGE_VERSION} for Minecraft ${MINECRAFT_VERSION}"
+    echo "  • FarmCraft mod → $MINECRAFT_DIR/mods/"
+    echo "  • Mod config → $MINECRAFT_DIR/config/farmcraft-common.toml"
+    echo "  • Backend servers (Recipe + MCP)"
+    echo ""
+    echo -e "${BLUE}To Play:${NC}"
+    echo "  1. Run: ${YELLOW}./launch-farmcraft.sh${NC}"
+    echo "  2. Select 'Forge' profile in Minecraft Launcher"
+    echo "  3. Start a new world and craft fertilizers!"
+    echo ""
+    echo -e "${BLUE}Manual Server Start:${NC}"
+    echo "  ${YELLOW}./start-servers.sh${NC}"
+    echo ""
+    echo -e "${BLUE}Quick Test Commands:${NC}"
+    echo "  /gamemode creative"
+    echo "  Search inventory for 'farmcraft'"
+    echo ""
+}
+
+# Main installation flow
+main() {
+    print_header
+    
+    echo -e "${BLUE}This installer will:${NC}"
+    echo "  1. Check/install Java 17"
+    echo "  2. Check Node.js"
+    echo "  3. Install Minecraft Forge"
+    echo "  4. Build and install FarmCraft mod"
+    echo "  5. Configure auto-connect to servers"
+    echo "  6. Build backend servers"
+    echo ""
+    
+    read -p "Continue? (y/n) " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        exit 0
+    fi
+    
+    echo ""
+    check_java
+    check_node
+    build_servers
+    install_forge
+    install_mod
+    setup_config
+    create_launcher
+    print_summary
+}
+
+# Run with options
+case "${1:-}" in
+    --servers-only)
+        check_node
+        build_servers
+        echo -e "${GREEN}✓ Servers ready. Run: ./start-servers.sh${NC}"
+        ;;
+    --mod-only)
+        check_java
+        install_mod
+        setup_config
+        echo -e "${GREEN}✓ Mod installed${NC}"
+        ;;
+    --help)
+        echo "FarmCraft Installer"
+        echo ""
+        echo "Usage: $0 [option]"
+        echo ""
+        echo "Options:"
+        echo "  (none)          Full installation"
+        echo "  --servers-only  Build servers only"
+        echo "  --mod-only      Install mod only"
+        echo "  --help          Show this help"
+        echo ""
+        echo "Environment variables:"
+        echo "  FARMCRAFT_SERVER  Server hostname (default: localhost)"
+        echo "  FARMCRAFT_PORT    Server port (default: 7421)"
+        ;;
+    *)
+        main
+        ;;
+esac

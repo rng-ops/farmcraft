@@ -1,0 +1,65 @@
+
+#FarmCraft Configuration
+[farmcraft]
+
+	#Recipe Server Connection Settings
+	[farmcraft.server]
+		#URL of the recipe distribution server
+		recipeServerUrl = "localhost"
+		#Port of the recipe distribution server (HTTP port, WebSocket is port+1)
+		#Range: 1 ~ 65535
+		recipeServerPort = 7420
+		#Automatically connect to recipe server on game start
+		autoConnect = true
+
+	#Proof of Work Settings
+	[farmcraft.pow]
+		#Enable proof-of-work challenges for recipe discovery
+		enablePoW = true
+		#Maximum difficulty level for challenges (1-20)
+		#Range: 1 ~ 20
+		maxDifficulty = 10
+		#Use GPU for computing challenges (requires compatible hardware)
+		useGpuCompute = false
+		#Thread priority for PoW computation (1=lowest, 10=highest)
+		#Range: 1 ~ 10
+		threadPriority = 1
+
+	#Farming Mechanics Settings
+	[farmcraft.farming]
+		#Base multiplier for crop growth speed
+		#Range: 0.1 ~ 10.0
+		baseGrowthMultiplier = 1.0
+		#Base multiplier for crop yields
+		#Range: 0.1 ~ 10.0
+		baseYieldMultiplier = 1.0
+		#Enable power foods that grant effects
+		enablePowerFoods = true
+		#Modifier for power food effect duration (percentage)
+		#Range: 10 ~ 500
+		effectDurationModifier = 100
+
+	#Fertilizer Visual Settings
+	[farmcraft.fertilizers]
+		#Show particles when fertilizers are applied
+		showParticles = true
+		#Enhanced fertilized farmland emits light
+		farmlandGlow = true
+
+	#Debug Settings
+	[farmcraft.debug]
+		#Enable debug mode for additional logging
+		debugMode = false
+		#Log all network packets (very verbose)
+		logNetworkPackets = false
+
+	#AI Documentation Assistant Settings
+	[farmcraft.ai]
+		#Enable AI assistant to respond to questions in chat
+		enableAiChat = true
+		#Minimum message length to trigger AI response
+		#Range: 5 ~ 100
+		minQuestionLength = 10
+		#Show animated thinking indicator when AI is processing
+		showThinkingAnimation = true
+

@@ -1,0 +1,20 @@
+{
+  "name": "@farmcraft/drm-core",
+  "version": "1.0.0",
+  "description": "DRM and version verification through shader state chains",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "node --test",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@farmcraft/types": "workspace:*",
+    "@farmcraft/pow-core": "workspace:*",
+    "@farmcraft/shader-compute": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0"
+  }
+}

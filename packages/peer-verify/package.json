@@ -1,0 +1,20 @@
+{
+  "name": "@farmcraft/peer-verify",
+  "version": "1.0.0",
+  "description": "Peer-to-peer version verification and resource sharing",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "node --test",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@farmcraft/types": "workspace:*",
+    "@farmcraft/drm-core": "workspace:*",
+    "@farmcraft/protocol": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0"
+  }
+}
