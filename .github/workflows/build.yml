@@ -5,8 +5,11 @@ on:
     branches: [main, develop]
   pull_request:
     branches: [main]
-  release:
-    types: [created]
+
+# Permissions for artifact uploads
+permissions:
+  contents: read
+  actions: read
 
 env:
   JAVA_VERSION: '17'
@@ -78,7 +81,7 @@ jobs:
           name: farmcraft-mod
           path: mod/forge/build/libs/*.jar
 
-  # Build Docker images
+  # Build Docker images (test build only, no push)
   build-docker:
     name: Build Docker Images
     runs-on: ubuntu-latest
@@ -99,37 +102,35 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # Create release artifacts
-  release:
-    name: Create Release
+  # Summary
+  build-summary:
+    name: Build Summary
     runs-on: ubuntu-latest
-    needs: [build-packages, build-mod]
-    if: github.event_name == 'release'
+    needs: [build-packages, build-mod, build-docker]
+    if: always()
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Download mod artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: farmcraft-mod
-          path: release/
-
-      - name: Download packages artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: typescript-packages
-          path: release/packages/
-
-      - name: Create release archive
+      - name: Check build status
         run: |
-          cd release
-          zip -r ../farmcraft-${{ github.ref_name }}.zip .
-
-      - name: Upload release assets
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
-            farmcraft-${{ github.ref_name }}.zip
-            release/*.jar
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ needs.build-packages.result }}" = "success" ]; then
+            echo "✅ TypeScript packages built successfully" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ TypeScript packages build failed" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ needs.build-mod.result }}" = "success" ]; then
+            echo "✅ Forge mod built successfully" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Forge mod build failed" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ needs.build-docker.result }}" = "success" ]; then
+            echo "✅ Docker image built successfully" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Docker image build failed" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "To create a release, push a tag like \`v1.0.0\`" >> $GITHUB_STEP_SUMMARY

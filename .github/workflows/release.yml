@@ -4,46 +4,72 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., v1.0.0)'
+        required: true
+        type: string
+      prerelease:
+        description: 'Mark as pre-release'
+        required: false
+        type: boolean
+        default: false
 
+# Use GITHUB_TOKEN - no personal access token needed
 permissions:
   contents: write
   packages: write
+  actions: read
+
+env:
+  JAVA_VERSION: '17'
+  NODE_VERSION: '20'
+  PNPM_VERSION: '8'
 
 jobs:
-  build-all:
-    name: Build All Artifacts
+  # Determine version from tag or input
+  prepare:
+    name: Prepare Release
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      is_prerelease: ${{ steps.version.outputs.is_prerelease }}
+    steps:
+      - name: Determine version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+            IS_PRERELEASE="${{ github.event.inputs.prerelease }}"
+          else
+            VERSION="${GITHUB_REF_NAME}"
+            # Check if it's a prerelease (contains alpha, beta, rc)
+            if [[ "$VERSION" =~ (alpha|beta|rc) ]]; then
+              IS_PRERELEASE="true"
+            else
+              IS_PRERELEASE="false"
+            fi
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "is_prerelease=$IS_PRERELEASE" >> $GITHUB_OUTPUT
+          echo "📦 Preparing release: $VERSION (prerelease: $IS_PRERELEASE)"
+
+  # Build Forge mod
+  build-mod:
+    name: Build Forge Mod
+    runs-on: ubuntu-latest
+    needs: prepare
     steps:
       - uses: actions/checkout@v4
 
-      # Setup Java for Forge mod
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: ${{ env.JAVA_VERSION }}
           cache: 'gradle'
 
-      # Setup Node for TypeScript packages
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 8
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-
-      # Build TypeScript packages
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build TypeScript packages
-        run: pnpm run build
-
-      # Build Forge mod
       - name: Make gradlew executable
         run: chmod +x mod/forge/gradlew
 
@@ -51,83 +77,75 @@ jobs:
         working-directory: mod/forge
         run: ./gradlew build --no-daemon
 
-      # Create release package
-      - name: Prepare release
-        run: |
-          mkdir -p release/mod
-          mkdir -p release/server
-
-          # Copy mod JAR
-          cp mod/forge/build/libs/*.jar release/mod/
-
-          # Copy server files
-          cp -r server/recipe-server/dist release/server/recipe-server 2>/dev/null || true
-          cp -r packages/mcp-recipe-server/dist release/server/mcp-server 2>/dev/null || true
-
-          # Copy scripts
-          cp install.sh release/
-          cp launch-farmcraft.sh release/
-          cp start-servers.sh release/
-          cp docker-compose.yml release/
-
-          # Copy docs
-          cp README.md release/
-          cp QUICKSTART.md release/
-          cp -r docs release/
-
-      - name: Create mod-only ZIP
+      - name: Rename JAR with version
         run: |
           cd mod/forge/build/libs
-          zip -r ../../../../farmcraft-mod-${{ github.ref_name }}.zip *.jar
+          for f in *.jar; do
+            if [[ ! "$f" =~ sources|javadoc ]]; then
+              mv "$f" "farmcraft-${{ needs.prepare.outputs.version }}.jar"
+            fi
+          done
 
-      - name: Create full release ZIP
-        run: |
-          cd release
-          zip -r ../farmcraft-full-${{ github.ref_name }}.zip .
-
-      - name: Generate changelog
-        id: changelog
-        run: |
-          echo "## What's New" > CHANGELOG.md
-          echo "" >> CHANGELOG.md
-          git log --pretty=format:"- %s" $(git describe --tags --abbrev=0 HEAD^)..HEAD >> CHANGELOG.md 2>/dev/null || echo "- Initial release" >> CHANGELOG.md
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+      - name: Upload mod artifact
+        uses: actions/upload-artifact@v4
         with:
-          body_path: CHANGELOG.md
-          files: |
-            farmcraft-mod-${{ github.ref_name }}.zip
-            farmcraft-full-${{ github.ref_name }}.zip
-            mod/forge/build/libs/*.jar
-          draft: false
-          prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: mod-jar
+          path: mod/forge/build/libs/farmcraft-*.jar
+          retention-days: 5
 
-  # Publish Docker image on release
-  publish-docker:
-    name: Publish Docker Image
+  # Build TypeScript packages
+  build-packages:
+    name: Build TypeScript Packages
     runs-on: ubuntu-latest
-    needs: build-all
+    needs: prepare
     steps:
       - uses: actions/checkout@v4
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
         with:
-          version: 8
+          version: ${{ env.PNPM_VERSION }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
 
-      - name: Install and build
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm run build
+
+      - name: Create server package
         run: |
-          pnpm install --frozen-lockfile
-          pnpm run build
+          mkdir -p dist-package/server
+          cp -r server/recipe-server/dist dist-package/server/recipe-server || true
+          cp -r packages/mcp-recipe-server/dist dist-package/server/mcp-server || true
+          cp -r packages/llm-docs/dist dist-package/server/llm-docs || true
+          
+          # Include package.json files for dependencies
+          cp server/recipe-server/package.json dist-package/server/recipe-server/ || true
+          cp packages/mcp-recipe-server/package.json dist-package/server/mcp-server/ || true
+
+      - name: Upload server package
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-package
+          path: dist-package/
+          retention-days: 5
+
+  # Build Docker image
+  build-docker:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: prepare
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -136,11 +154,132 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable=${{ needs.prepare.outputs.is_prerelease == 'false' }}
+
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
-          tags: |
-            ghcr.io/${{ github.repository }}:${{ github.ref_name }}
-            ghcr.io/${{ github.repository }}:latest
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # Create GitHub Release
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [prepare, build-mod, build-packages, build-docker]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for changelog
+
+      - name: Download mod artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: mod-jar
+          path: artifacts/mod/
+
+      - name: Download server package
+        uses: actions/download-artifact@v4
+        with:
+          name: server-package
+          path: artifacts/server/
+
+      - name: Prepare release files
+        run: |
+          VERSION="${{ needs.prepare.outputs.version }}"
+          mkdir -p release
+          
+          # Copy mod JAR
+          cp artifacts/mod/*.jar release/
+          
+          # Create mod-only zip
+          cd artifacts/mod && zip -r "../../release/farmcraft-mod-${VERSION}.zip" *.jar && cd ../..
+          
+          # Create full package
+          mkdir -p full-package
+          cp -r artifacts/mod full-package/
+          cp -r artifacts/server full-package/
+          cp install.sh full-package/ || true
+          cp start-servers.sh full-package/ || true
+          cp docker-compose.yml full-package/ || true
+          cp README.md full-package/
+          cp QUICKSTART.md full-package/ || true
+          cp -r docs full-package/ || true
+          
+          cd full-package && zip -r "../release/farmcraft-full-${VERSION}.zip" . && cd ..
+          
+          echo "📦 Release files prepared:"
+          ls -la release/
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          VERSION="${{ needs.prepare.outputs.version }}"
+          
+          # Get previous tag
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          
+          cat > CHANGELOG.md << 'EOF'
+          ## 🎮 FarmCraft ${{ needs.prepare.outputs.version }}
+          
+          ### Downloads
+          - **Mod Only**: `farmcraft-mod-${{ needs.prepare.outputs.version }}.zip` - Just the Forge mod JAR
+          - **Full Package**: `farmcraft-full-${{ needs.prepare.outputs.version }}.zip` - Mod + servers + docs
+          - **Docker**: `ghcr.io/${{ github.repository }}:${{ needs.prepare.outputs.version }}`
+          
+          ### Installation
+          1. Download `farmcraft-mod-${{ needs.prepare.outputs.version }}.zip`
+          2. Extract the JAR to your Minecraft `mods/` folder
+          3. Launch Minecraft with Forge 1.20.4
+          
+          ### Changes
+          EOF
+          
+          if [ -n "$PREV_TAG" ]; then
+            git log --pretty=format:"- %s" ${PREV_TAG}..HEAD >> CHANGELOG.md
+          else
+            echo "- Initial release" >> CHANGELOG.md
+          fi
+          
+          cat CHANGELOG.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: FarmCraft ${{ needs.prepare.outputs.version }}
+          tag_name: ${{ needs.prepare.outputs.version }}
+          body_path: CHANGELOG.md
+          draft: false
+          prerelease: ${{ needs.prepare.outputs.is_prerelease == 'true' }}
+          files: |
+            release/farmcraft-mod-*.zip
+            release/farmcraft-full-*.zip
+            release/*.jar
+          generate_release_notes: true
+          make_latest: ${{ needs.prepare.outputs.is_prerelease == 'false' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Release Summary
+        run: |
+          echo "## 🎉 Release Created Successfully!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** ${{ needs.prepare.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Pre-release:** ${{ needs.prepare.outputs.is_prerelease }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "- Mod JAR uploaded" >> $GITHUB_STEP_SUMMARY
+          echo "- Full package ZIP uploaded" >> $GITHUB_STEP_SUMMARY
+          echo "- Docker image pushed to ghcr.io" >> $GITHUB_STEP_SUMMARY
