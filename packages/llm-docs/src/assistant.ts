@@ -65,7 +65,7 @@ Guidelines:
         return quickAnswer;
       }
 
-      const chain = this.prompt.pipe(this.llm).pipe(this.parser);
+      const chain = this.prompt.pipe(this.llm as any).pipe(this.parser as any);
 
       const response = await chain.invoke({
         modMetadata: this.formatModMetadata(),
@@ -73,7 +73,7 @@ Guidelines:
         question,
       });
 
-      return response.trim();
+      return String(response).trim();
     } catch (error) {
       console.error('LLM query failed:', error);
       return "Sorry, I couldn't process your question. Try /farmcraft help [topic] instead.";
