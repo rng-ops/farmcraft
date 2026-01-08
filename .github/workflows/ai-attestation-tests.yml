@@ -357,6 +357,16 @@ jobs:
           path: ~/minecraft-ai-tests/profiles/*.json
           retention-days: 90
 
+      - name: Upload server logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-logs-${{ github.run_number }}
+          path: |
+            ~/minecraft-ai-tests/server.log
+            ~/minecraft-ai-tests/logs/*.log
+          retention-days: 30
+
       - name: Test summary
         if: always()
         run: |

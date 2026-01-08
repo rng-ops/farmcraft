@@ -57,3 +57,31 @@ folding-results/
 
 # Temp logs
 /tmp/farmcraft-*.log
+
+# GitHub Actions Runner (local)
+actions-runner/
+_work/
+.runner
+.credentials
+.credentials_rsaparams
+
+# Test outputs and recordings
+minecraft-test-env/
+minecraft-test-output/
+minecraft-ai-tests/
+test-output/
+ai-test-output/
+*.mp4
+*.mov
+*.avi
+
+# Test data
+test-recordings/
+packet-captures/
+test-profiles/
+test-videos/
+
+# Runner scripts (generated)
+record-minecraft-test.sh
+profile-minecraft-test.sh
+run-minecraft-tests.sh
