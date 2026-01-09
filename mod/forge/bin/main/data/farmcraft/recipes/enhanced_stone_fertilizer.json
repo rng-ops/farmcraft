@@ -1,0 +1,23 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "SG",
+    "SR",
+    "SS"
+  ],
+  "key": {
+    "S": {
+      "item": "farmcraft:stone_dust_fertilizer"
+    },
+    "G": {
+      "item": "minecraft:glowstone_dust"
+    },
+    "R": {
+      "item": "minecraft:redstone"
+    }
+  },
+  "result": {
+    "item": "farmcraft:enhanced_stone_fertilizer",
+    "count": 4
+  }
+}

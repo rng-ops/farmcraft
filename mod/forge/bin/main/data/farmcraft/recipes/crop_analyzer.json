@@ -1,0 +1,23 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    " G ",
+    "RGR",
+    "ROR"
+  ],
+  "key": {
+    "G": {
+      "item": "minecraft:glass"
+    },
+    "R": {
+      "item": "minecraft:redstone"
+    },
+    "O": {
+      "item": "minecraft:gold_ingot"
+    }
+  },
+  "result": {
+    "item": "farmcraft:crop_analyzer",
+    "count": 1
+  }
+}

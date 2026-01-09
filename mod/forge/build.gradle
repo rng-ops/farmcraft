@@ -6,6 +6,10 @@ plugins {
     id 'net.minecraftforge.gradle' version '[6.0.16,6.2)'
 }
 
+// =============================================================================
+// PROJECT CONFIGURATION
+// =============================================================================
+
 version = '1.0.0'
 group = 'com.farmcraft'
 
@@ -17,10 +21,63 @@ java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 
 println "Java: ${System.getProperty 'java.version'}, JVM: ${System.getProperty 'java.vm.version'} (${System.getProperty 'java.vendor'}), Arch: ${System.getProperty 'os.arch'}"
 
+// =============================================================================
+// COMBINED OUTPUT DIRECTORY FOR DEV
+// =============================================================================
+// ForgeGradle 6.x requires classes and resources to be in the same location
+// for the mod locator to work properly in dev environment.
+
+def combinedOutput = file("${buildDir}/combined")
+
+// =============================================================================
+// SOURCE SETS CONFIGURATION
+// =============================================================================
+
+sourceSets {
+    main {
+        resources {
+            srcDir 'src/generated/resources'
+        }
+        // Point both classes and resources to combined output
+        java.destinationDirectory = combinedOutput
+        output.resourcesDir = combinedOutput
+    }
+}
+
+// =============================================================================
+// RESOURCE PROCESSING
+// =============================================================================
+
+tasks.named('processResources', ProcessResources).configure {
+    var replaceProperties = [
+            minecraft_version   : '1.20.4',
+            minecraft_version_range: '[1.20.4,1.21)',
+            forge_version       : '49.0.30',
+            forge_version_range : '[49,)',
+            loader_version_range: '[49,)',
+            mod_id              : 'farmcraft',
+            mod_name            : 'FarmCraft',
+            mod_license         : 'MIT',
+            mod_version         : '1.0.0',
+            mod_authors         : 'FarmCraft Team',
+            mod_description     : 'Enhanced farming with fertilizers and power foods'
+    ]
+    inputs.properties replaceProperties
+
+    filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) {
+        expand replaceProperties + [project: project]
+    }
+}
+
+// =============================================================================
+// MINECRAFT / FORGE CONFIGURATION
+// =============================================================================
+
 minecraft {
     mappings channel: 'official', version: '1.20.4'
-
-    copyIdeResources = true
+    
+    // Disable IDE resource copying to avoid confusion
+    copyIdeResources = false
 
     runs {
         configureEach {
@@ -29,6 +86,16 @@ minecraft {
             property 'forge.logging.markers', 'REGISTRIES'
             property 'forge.logging.console.level', 'debug'
 
+            // JVM args for Java 17+ module access
+            jvmArgs '--add-opens', 'java.base/java.lang=ALL-UNNAMED'
+            jvmArgs '--add-opens', 'java.base/java.lang.reflect=ALL-UNNAMED'
+            jvmArgs '--add-opens', 'java.base/java.nio=ALL-UNNAMED'
+            jvmArgs '--add-opens', 'java.base/sun.nio.ch=ALL-UNNAMED'
+            jvmArgs '--add-opens', 'java.base/jdk.internal.misc=ALL-UNNAMED'
+            jvmArgs '--add-opens', 'java.base/java.util=ALL-UNNAMED'
+            jvmArgs '-Dio.netty.tryReflectionSetAccessible=true'
+
+            // Configure mod sources - this tells ForgeGradle where to find the mod
             mods {
                 farmcraft {
                     source sourceSets.main
@@ -62,7 +129,9 @@ minecraft {
     }
 }
 
-sourceSets.main.resources { srcDir 'src/generated/resources' }
+// =============================================================================
+// REPOSITORIES
+// =============================================================================
 
 repositories {
     maven {
@@ -72,6 +141,10 @@ repositories {
         }
     }
 }
+
+// =============================================================================
+// DEPENDENCIES
+// =============================================================================
 
 dependencies {
     minecraft 'net.minecraftforge:forge:1.20.4-49.0.30'
@@ -84,26 +157,9 @@ dependencies {
     testImplementation 'org.mockito:mockito-junit-jupiter:5.3.1'
 }
 
-tasks.named('processResources', ProcessResources).configure {
-    var replaceProperties = [
-            minecraft_version   : '1.20.4',
-            minecraft_version_range: '[1.20.4,1.21)',
-            forge_version       : '49.0.30',
-            forge_version_range : '[49,)',
-            loader_version_range: '[49,)',
-            mod_id              : 'farmcraft',
-            mod_name            : 'FarmCraft',
-            mod_license         : 'MIT',
-            mod_version         : '1.0.0',
-            mod_authors         : 'FarmCraft Team',
-            mod_description     : 'Enhanced farming with fertilizers and power foods'
-    ]
-    inputs.properties replaceProperties
-
-    filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) {
-        expand replaceProperties + [project: project]
-    }
-}
+// =============================================================================
+// JAR CONFIGURATION
+// =============================================================================
 
 tasks.named('jar', Jar).configure {
     manifest {
@@ -120,6 +176,39 @@ tasks.named('jar', Jar).configure {
 
     finalizedBy 'reobfJar'
 }
+
+// =============================================================================
+// TEST CONFIGURATION
+// =============================================================================
+
+test {
+    useJUnitPlatform()
+    
+    testLogging {
+        events "passed", "skipped", "failed"
+        exceptionFormat "full"
+        showStandardStreams = false
+    }
+    
+    failFast = false
+    ignoreFailures = true
+    
+    reports {
+        html.required = true
+        junitXml.required = true
+    }
+    
+    systemProperty 'junit.jupiter.execution.parallel.enabled', 'false'
+    
+    // Skip tests unless explicitly requested
+    onlyIf {
+        project.hasProperty('runTests') || System.getenv('RUN_MOD_TESTS') == 'true'
+    }
+}
+
+// =============================================================================
+// PUBLISHING
+// =============================================================================
 
 publishing {
     publications {
@@ -138,83 +227,184 @@ tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }
 
-// Configure test task - skip by default as Forge mod tests require special setup
-// Use runGameTest for in-game testing
-test {
-    useJUnitPlatform()
+// =============================================================================
+// DEVELOPMENT TASKS - Run with class files (default, fast iteration)
+// =============================================================================
+
+// Task to clean only the build outputs (keeps cached downloads)
+task cleanBuild(type: Delete) {
+    description = 'Cleans build outputs but preserves cached downloads and run configurations'
+    group = 'farmcraft'
     
-    // Run tests during build
-    testLogging {
-        events "passed", "skipped", "failed"
-        exceptionFormat "full"
-        showStandardStreams = false
-    }
+    delete "${buildDir}/classes"
+    delete "${buildDir}/resources"
+    delete "${buildDir}/combined"
+    delete "${buildDir}/libs"
+    delete "${buildDir}/generated"
+    delete "${buildDir}/tmp"
+}
+
+// Task to prepare the dev environment (no jar needed)
+task prepareDev {
+    description = 'Prepares the development environment for running with class files'
+    group = 'farmcraft'
     
-    // Fail build if command tests fail
-    failFast = false
-    ignoreFailures = true  // Allow build to proceed even if tests fail
+    dependsOn 'classes', 'processResources'
     
-    // Set test output
-    reports {
-        html.required = true
-        junitXml.required = true
-    }
-    
-    systemProperty 'junit.jupiter.execution.parallel.enabled', 'false'
-    
-    // Skip tests if MC classes not available
-    onlyIf {
-        // Only run if explicitly requested or test sources exist
-        project.hasProperty('runTests') || System.getenv('RUN_MOD_TESTS') == 'true'
+    doLast {
+        println ""
+        println "============================================================"
+        println "✅ Development environment ready!"
+        println "============================================================"
+        println ""
+        println "Run the client:  ./gradlew runClient"
+        println "Run the server:  ./gradlew runServer"
+        println ""
+        println "The mod will load directly from class files for fast iteration."
+        println "No JAR packaging required for development testing."
+        println ""
     }
 }
 
-// Don't require tests for jar - tests need MC environment
-tasks.named('jar').configure {
-    // Remove test dependency for standard builds
-    // Tests should be run separately via ./gradlew runGameTest
+// =============================================================================
+// PRODUCTION TASKS - Full build with JAR packaging
+// =============================================================================
+
+// Task to copy the built mod JAR to the run/mods folder
+task copyModToMods(type: Copy) {
+    description = 'Copies the built mod JAR to run/mods folder'
+    group = 'farmcraft'
+    
+    dependsOn 'jar', 'reobfJar'
+    mustRunAfter 'reobfJar'
+    
+    from("${buildDir}/libs") {
+        include 'farmcraft-*.jar'
+        exclude '*-sources.jar'
+    }
+    into "${projectDir}/run/mods"
+    
+    doFirst {
+        delete fileTree("${projectDir}/run/mods") {
+            include 'farmcraft-*.jar'
+        }
+    }
+    
+    doLast {
+        println "✅ Copied mod JAR to run/mods/"
+        fileTree("${projectDir}/run/mods").each { println "   - ${it.name}" }
+    }
 }
 
-// CI/CD integration: create a task that runs tests and reports results
-task ciTest(type: Test) {
-    useJUnitPlatform()
+// Task to copy mod to server mods folder
+task copyModToServerMods(type: Copy) {
+    description = 'Copies the built mod JAR to run-server/mods folder'
+    group = 'farmcraft'
     
-    testLogging {
-        events "passed", "skipped", "failed", "standardOut", "standardError"
-        exceptionFormat "full"
-        showExceptions true
-        showCauses true
-        showStackTraces true
+    dependsOn 'jar', 'reobfJar'
+    mustRunAfter 'reobfJar'
+    
+    from("${buildDir}/libs") {
+        include 'farmcraft-*.jar'
+        exclude '*-sources.jar'
+    }
+    into "${projectDir}/run-server/mods"
+    
+    doFirst {
+        file("${projectDir}/run-server/mods").mkdirs()
+        delete fileTree("${projectDir}/run-server/mods") {
+            include 'farmcraft-*.jar'
+        }
     }
     
-    // CI/CD should fail on any test failure
-    failFast = true
-    ignoreFailures = false
-    
-    // Output test results for CI/CD systems
-    reports {
-        html.required = true
-        junitXml.required = true
+    doLast {
+        println "✅ Copied mod JAR to run-server/mods/"
     }
-    
-    // Set output directory for CI/CD
-    reports.html.outputLocation = file("$buildDir/reports/tests/ci")
-    reports.junitXml.outputLocation = file("$buildDir/test-results/ci")
 }
 
-// Create a task to validate commands are registered
-task validateCommands(type: Test) {
-    description = 'Validates that all FarmCraft commands are properly registered'
-    group = 'verification'
+// Combined task to build and package everything
+task buildMod {
+    description = 'Builds and packages the FarmCraft mod JAR for distribution'
+    group = 'farmcraft'
     
-    useJUnitPlatform {
-        includeTags 'command-registration'
+    dependsOn 'clean', 'jar', 'reobfJar', 'copyModToMods', 'copyModToServerMods'
+    
+    doLast {
+        println ""
+        println "============================================================"
+        println "✅ FarmCraft mod built and packaged successfully!"
+        println "============================================================"
+        println ""
+        println "JAR location: ${buildDir}/libs/farmcraft-${version}.jar"
+        println ""
+        println "The mod JAR has been copied to:"
+        println "  - run/mods/ (for client)"
+        println "  - run-server/mods/ (for server)"
+        println ""
     }
-    
-    testLogging {
-        events "passed", "failed"
-        exceptionFormat "full"
-    }
-    
-    failFast = true
 }
+
+// Task to just build the JAR without copying
+task packageMod {
+    description = 'Builds the mod JAR for distribution (without copying to run folders)'
+    group = 'farmcraft'
+    
+    dependsOn 'jar', 'reobfJar'
+    
+    doLast {
+        println ""
+        println "✅ Mod JAR built: ${buildDir}/libs/farmcraft-${version}.jar"
+        println ""
+    }
+}
+
+// =============================================================================
+// UTILITY TASKS
+// =============================================================================
+
+// Task to show all available FarmCraft tasks
+task farmcraftHelp {
+    description = 'Shows help for all FarmCraft development tasks'
+    group = 'farmcraft'
+    
+    doLast {
+        println """
+============================================================
+FarmCraft Mod - Development Tasks
+============================================================
+
+DEVELOPMENT (Fast iteration, no JAR):
+  ./gradlew prepareDev     - Compile classes and prepare for development
+  ./gradlew runClient      - Run Minecraft client with mod (uses class files)
+  ./gradlew runServer      - Run Minecraft server with mod (uses class files)
+
+PRODUCTION (Full JAR build):
+  ./gradlew packageMod     - Build mod JAR for distribution
+  ./gradlew buildMod       - Clean, build JAR, and copy to run folders
+
+TESTING:
+  ./gradlew runGameTest    - Run in-game tests
+  ./gradlew test -PrunTests - Run unit tests
+
+CLEANING:
+  ./gradlew cleanBuild     - Clean build outputs (preserve cache)
+  ./gradlew clean          - Full clean (removes everything)
+
+DATA GENERATION:
+  ./gradlew runData        - Generate data files (recipes, loot tables, etc.)
+
+============================================================
+For development, just use: ./gradlew runClient
+The mod loads directly from compiled classes - no JAR needed!
+============================================================
+"""
+    }
+}
+
+// Print helpful info when project loads
+gradle.projectsEvaluated {
+    println ""
+    println "FarmCraft Mod - Type './gradlew farmcraftHelp' for available tasks"
+    println ""
+}
+

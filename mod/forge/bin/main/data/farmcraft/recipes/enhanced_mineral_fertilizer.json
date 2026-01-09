@@ -1,0 +1,23 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "MA",
+    "ML",
+    "MM"
+  ],
+  "key": {
+    "M": {
+      "item": "farmcraft:mineral_blend_fertilizer"
+    },
+    "A": {
+      "item": "minecraft:amethyst_shard"
+    },
+    "L": {
+      "item": "minecraft:lapis_lazuli"
+    }
+  },
+  "result": {
+    "item": "farmcraft:enhanced_mineral_fertilizer",
+    "count": 4
+  }
+}

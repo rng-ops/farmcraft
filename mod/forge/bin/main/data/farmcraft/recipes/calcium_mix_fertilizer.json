@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "CC",
+    "CC",
+    "BB"
+  ],
+  "key": {
+    "C": {
+      "item": "minecraft:calcite"
+    },
+    "B": {
+      "item": "minecraft:bone_meal"
+    }
+  },
+  "result": {
+    "item": "farmcraft:calcium_mix_fertilizer",
+    "count": 4
+  }
+}

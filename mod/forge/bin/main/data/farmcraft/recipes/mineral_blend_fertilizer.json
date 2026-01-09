@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "TT",
+    "TT",
+    "BB"
+  ],
+  "key": {
+    "T": {
+      "item": "minecraft:tuff"
+    },
+    "B": {
+      "item": "minecraft:bone_meal"
+    }
+  },
+  "result": {
+    "item": "farmcraft:mineral_blend_fertilizer",
+    "count": 4
+  }
+}

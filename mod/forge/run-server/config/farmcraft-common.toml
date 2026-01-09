@@ -53,3 +53,13 @@
 		#Log all network packets (very verbose)
 		logNetworkPackets = false
 
+	#AI Documentation Assistant Settings
+	[farmcraft.ai]
+		#Enable AI assistant to respond to questions in chat
+		enableAiChat = true
+		#Minimum message length to trigger AI response
+		#Range: 5 ~ 100
+		minQuestionLength = 10
+		#Show animated thinking indicator when AI is processing
+		showThinkingAnimation = true
+
